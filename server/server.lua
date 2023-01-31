@@ -283,69 +283,6 @@ RegisterNetEvent("qb-pos:server:setPrice", function(id, price)
     exports.oxmysql:execute('UPDATE business_items SET price = ? WHERE id = ?', { tonumber(price), tonumber(id) })
 end)
 
-RegisterNetEvent('qb-pos:server:washDirtyMoney', function()
-    local src = source
-    local player = QBCore.Functions.GetPlayer(src)
-    local items = {}
-    local purchasedItems = {}
-    local total = 0
-    local markedbills = player.Functions.GetItemByName("markedbills")
-    if markedbills ~= nil then
-        local worth = tonumber(markedbills.info.worth)
-        local business = exports.oxmysql:singleSync('SELECT * FROM businesses WHERE name = ?', { player.PlayerData.job.name })
-        if business ~= nil then
-            local businessitems = exports.oxmysql:executeSync('SELECT * FROM business_items WHERE businessid = ?', { business.id })
-            if businessitems[1] ~= nil then
-                for k,v in pairs(businessitems) do
-                    items[#items+1] = {
-                        id = v.id,
-                        hash = v.name,
-                        name = QBCore.Shared.Items[v.name].label,
-                        image = QBCore.Shared.Items[v.name].image,
-                        price = v.price
-                    }
-                end
-            end
-        end
-        while total < worth do
-            local randomItem = items[math.random(#items)]
-            if purchasedItems[randomItem.hash] ~= nil then
-                purchasedItems[randomItem.hash].ordered += 1
-            else
-                purchasedItems[randomItem.hash] = {
-                    ordered = 1,
-                    price = randomItem.price,
-                    image = 'nui://qb-inventory/html/images/' .. randomItem.image,
-                    label = randomItem.name
-                }
-            end
-            total += randomItem.price
-        end
-        local randomPurchaser = exports.oxmysql:singleSync('SELECT * FROM players ORDER BY RAND () LIMIT 1')
-        if randomPurchaser ~= nil then
-            local charinfo = json.decode(randomPurchaser.charinfo)
-            exports.oxmysql:execute('INSERT INTO business_transactions (entrantcitizenid, entrantfirstname, entrantlastname, payercitizenid, payerfirstname, payerlastname, businessname, businessid, items, price, selfcheckout) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-                {
-                    player.PlayerData.citizenid,
-                    player.PlayerData.charinfo.firstname,
-                    player.PlayerData.charinfo.lastname,
-                    randomPurchaser.citizenid,
-                    charinfo.firstname,
-                    charinfo.lastname,
-                    player.PlayerData.job.name,
-                    business.id,
-                    json.encode(purchasedItems),
-                    worth,
-                    false
-                }
-            )
-            player.Functions.RemoveItem('markedbills', 1)
-			TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items['markedbills'], "remove")
-            TriggerEvent('qb-bossmenu:server:addAccountMoney', player.PlayerData.job.name, worth)
-        end
-    end
-end)
-
 CreateThread(function()
     for k,v in pairs(Config.POSJobs) do
         if Config.POSJobs[k].Items ~= nil then

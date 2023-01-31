@@ -47,22 +47,6 @@ local function CheckManager()
     return PlayerJob.isboss
 end
 
-local function ShowIfDirtyMoney(job)
-    local job = job
-    local retval = false
-    local calc = nil
-    QBCore.Functions.TriggerCallback('QBCore:HasItem', function(data)
-        if data then
-            retval = true
-        end
-        calc = true
-    end, "markedbills")
-    while calc == nil do
-        Wait(1)
-    end
-    return retval
-end
-
 local function PrepareFood(foodItem)
     local playerJob = QBCore.Functions.GetPlayerData().job.name
     if Config.POSJobs[playerJob].Items[foodItem] ~= nil then
@@ -225,25 +209,6 @@ RegisterNetEvent('qb-pos:client:sinkWashHands', function()
         flags = 8,
     }, {}, {}, function()  
 		TriggerEvent('QBCore:Notify', "You\'ve washed your hands!", 'success')
-    end, function() -- Cancel
-        TriggerEvent('inventory:client:busy:status', false)
-		TriggerEvent('QBCore:Notify', "Cancelled", 'error')
-    end)
-end)
-
-RegisterNetEvent('qb-pos:client:sinkWashDirtyMoney', function()
-    QBCore.Functions.Progressbar('washing_hands', 'Washing hands', 5000, false, false, {
-        disableMovement = true, --
-        disableCarMovement = true,
-        disableMouse = false,
-        disableCombat = true,
-    }, {
-        animDict = "mp_arresting", 
-        anim = "a_uncuff", 
-        flags = 8,
-    }, {}, {}, function()  
-		TriggerEvent('QBCore:Notify', "You\'ve washed your hands!", 'success')
-        TriggerServerEvent('qb-pos:server:washDirtyMoney')
     end, function() -- Cancel
         TriggerEvent('inventory:client:busy:status', false)
 		TriggerEvent('QBCore:Notify', "Cancelled", 'error')
@@ -455,7 +420,6 @@ CreateThread(function()
                 exports['qb-target']:AddCircleZone(k .. "Sink" .. i, j.coords, j.radius, { name=k .. "Sink" .. i, debugPoly=false, useZ = true, }, 
                     { options = { 
                         { type = "client", event = 'qb-pos:client:sinkWashHands', icon = 'fas fa-hand-holding-water', label = 'Wash Hands', job = k, position = 1 },
-                        { type = "client", event = 'qb-pos:client:sinkWashDirtyMoney', icon = 'fas fa-donate', label = 'Wash Dirty Money', job = k, position = 2, canInteract = function() return ShowIfDirtyMoney(k) end }, 
                     },
                     distance = 1.5
                 })
